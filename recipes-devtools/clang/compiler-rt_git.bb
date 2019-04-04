@@ -79,7 +79,8 @@ do_install_append () {
 
 FILES_SOLIBSDEV = ""
 FILES_${PN} += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/lib*${SOLIBSDEV} \
-                ${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/*.txt"
+                ${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/*.txt \
+                /usr/share/*.txt"
 FILES_${PN}-staticdev += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.a"
 FILES_${PN}-dev += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.syms"
 INSANE_SKIP_${PN} = "dev-so"
