@@ -18,6 +18,7 @@ SRC_URI =  "\
     ${LLVM_GIT}/compiler-rt.git;protocol=${LLVM_GIT_PROTOCOL};branch=${BRANCH};name=compiler-rt \
     file://0001-support-a-new-embedded-linux-target.patch \
     file://0002-Simplify-cross-compilation.-Don-t-use-native-compile.patch \
+    file://0003-Disable-tsan-on-OE-glibc.patch \
     file://0004-cmake-mips-Do-not-specify-target-with-OE.patch \
 "
 
@@ -51,7 +52,6 @@ EXTRA_OECMAKE_append_class-nativesdk = "\
 "
 
 EXTRA_OECMAKE_append_libc-musl = " -DCOMPILER_RT_BUILD_SANITIZERS=OFF -DCOMPILER_RT_BUILD_XRAY=OFF "
-EXTRA_OECMAKE_append_mipsarch = "-DCOMPILER_RT_BUILD_SANITIZERS=OFF -DCOMPILER_RT_BUILD_XRAY=OFF "
 
 do_compile() {
 	ninja ${PARALLEL_MAKE}
@@ -63,18 +63,17 @@ do_install() {
 
 
 do_install_append () {
+	install -d ${D}${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux
 	if [ -d ${D}${libdir}/linux ]; then
 		for f in `find ${D}${libdir}/linux -maxdepth 1 -type f`
 		do
-			install -D -m 0644 $f ${D}${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/`basename $f`
-			rm $f
+			mv $f ${D}${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux
 		done
 		rmdir ${D}${libdir}/linux
 	fi
 	for f in `find ${D}${exec_prefix} -maxdepth 1 -name '*.txt' -type f`
 	do
-		install -D -m 0644  $f ${D}${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/`basename $f`
-		rm $f
+		mv $f ${D}${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}
 	done
 }
 
@@ -82,7 +81,7 @@ FILES_SOLIBSDEV = ""
 FILES_${PN} += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/lib*${SOLIBSDEV} \
                 ${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/*.txt"
 FILES_${PN}-staticdev += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.a"
-FILES_${PN}-dev += "${datadir} ${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.syms"
+FILES_${PN}-dev += "${libdir}/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.syms"
 INSANE_SKIP_${PN} = "dev-so"
 
 #PROVIDES_append_class-target = "\
@@ -94,9 +93,6 @@ INSANE_SKIP_${PN} = "dev-so"
 #        "
 #
 
-RDEPENDS_${PN}-dev += "${PN}-staticdev"
-
 BBCLASSEXTEND = "native nativesdk"
 
 ALLOW_EMPTY_${PN} = "1"
-ALLOW_EMPTY_${PN}-dev = "1"
