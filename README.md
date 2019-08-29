@@ -1,3 +1,5 @@
+[![Build Status](https://drone.yoedistro.org/api/badges/kraj/meta-clang/status.svg)](https://drone.yoedistro.org/kraj/meta-clang)
+
 # meta-clang (a C language family frontend and LLVM compiler backend)
 
 This layer provides [clang/llvm](http://clang.llvm.org/) as alternative to your system
@@ -41,33 +43,30 @@ TOOLCHAIN = "clang"
 
 # Default C++ Standard Library Switch
 
-Note that by default libstdc++ will remain the default C++ standard library, however if you wish
-libc++ to be the default one then set
+Note that by default clang libc++ is default C++ standard library, however if you wish
+GNU libstdc++ to be the default one then set
 
 ```python
-CXX_append_toolchain-clang = " -stdlib=libc++ "
-TARGET_CXXFLAGS_append_toolchain-clang = " -stdlib=libc++ "
+LIBCPLUSPLUS = ""
 ```
 
 in local.conf.
-You can select libc++ per package too by writing bbappends for them containing
+You can select libstdc++ per package too by writing bbappends for them containing
 
 ```python
-CXX_append_toolchain-clang_pn-<recipe> = " -stdlib=libc++ "
-TARGET_CXXFLAGS_append_toolchain-clang_pn-<recipe> = " -stdlib=libc++ "
+LIBCPLUSPLUS_toolchain-clang_pn-<recipe> = ""
 ```
 
-# Default Compiler Runtime ( Compiler-rt + libcxx )
+# Default Compiler Runtime ( Compiler-rt + libc++ )
 
-By default, clang build from meta-clang uses gcc runtime ( libgcc + libstdc++ ) out of box
-However, it is possible to switch to using Clang runtime as default, In order to do that
+By default, clang build from meta-clang uses clang runtime ( compiler-rt + libc++ + libunwind ) out of box
+However, it is possible to switch to using gcc runtime as default, In order to do that
 following settings are needed in site configurations e.g. in local.conf
 
 ```python
 TOOLCHAIN ?= "clang"
-CXX_append_toolchain-clang = " -stdlib=libc++ "
-TARGET_CXXFLAGS_append_toolchain-clang = " -stdlib=libc++ "
-TUNE_CCARGS_append_toolchain-clang = " --rtlib=compiler-rt"
+TARGET_CXXFLAGS_remoce_toolchain-clang = " --stdlib=libc++"
+TUNE_CCARGS_remove_toolchain-clang = " --rtlib=compiler-rt --unwindlib=libunwind --stdlib=libc++"
 ```
 
 # Building

@@ -1,7 +1,7 @@
-From 4fe687292a2b2952a360eecdd6954db11750c903 Mon Sep 17 00:00:00 2001
+From 07f5fef22be3800e37c5f635781805fcd60ae00a Mon Sep 17 00:00:00 2001
 From: Khem Raj <raj.khem@gmail.com>
 Date: Sat, 21 May 2016 21:52:36 -0700
-Subject: [PATCH 01/15] clang: driver: Use /lib for ldso on OE
+Subject: [PATCH 10/20] clang: driver: Use /lib for ldso on OE
 
 OE does not follow the default base_libdir
 that clang has, therefore adjust it for OE
@@ -9,16 +9,19 @@ it wont be able to support multilib since
 in multilib case OE switches the base libdir
 for 64bit to /lib64 instead of /lib
 
+Make sure that the change only happens for cross
+compilation on x86_64 architecture
+
 Signed-off-by: Khem Raj <raj.khem@gmail.com>
 ---
- clang/lib/Driver/ToolChains/Linux.cpp | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ clang/lib/Driver/ToolChains/Linux.cpp | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/clang/lib/Driver/ToolChains/Linux.cpp b/clang/lib/Driver/ToolChains/Linux.cpp
-index 65ab9b2daf5..33e2fcec299 100644
+index 3e68d50dac2..dbe5ed7d89e 100644
 --- a/clang/lib/Driver/ToolChains/Linux.cpp
 +++ b/clang/lib/Driver/ToolChains/Linux.cpp
-@@ -590,12 +590,12 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
+@@ -593,12 +593,12 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
      Loader = "ld.so.1";
      break;
    case llvm::Triple::ppc64:
@@ -33,7 +36,7 @@ index 65ab9b2daf5..33e2fcec299 100644
      Loader =
          (tools::ppc::hasPPCAbiArg(Args, "elfv1")) ? "ld64.so.1" : "ld64.so.2";
      break;
-@@ -617,7 +617,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
+@@ -620,7 +620,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
      Loader = "ld-linux.so.2";
      break;
    case llvm::Triple::sparcv9:
@@ -42,15 +45,19 @@ index 65ab9b2daf5..33e2fcec299 100644
      Loader = "ld-linux.so.2";
      break;
    case llvm::Triple::systemz:
-@@ -631,7 +631,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
+@@ -633,8 +633,10 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
+     break;
    case llvm::Triple::x86_64: {
      bool X32 = Triple.getEnvironment() == llvm::Triple::GNUX32;
- 
+-
 -    LibDir = X32 ? "libx32" : "lib64";
-+    LibDir = "lib";
++    if (Triple.getEnvironment() == llvm::Triple::GNU)
++      LibDir = X32 ? "libx32" : "lib64";
++    else
++      LibDir = "lib";
      Loader = X32 ? "ld-linux-x32.so.2" : "ld-linux-x86-64.so.2";
      break;
    }
 -- 
-2.20.1
+2.22.0
 
