@@ -94,6 +94,8 @@ EXTRA_OECMAKE += "-DLLVM_ENABLE_ASSERTIONS=OFF \
                   -G Ninja ${S}/llvm \
                   -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON \
 		  -DPYTHON_EXECUTABLE=${PYTHON} \
+                  -DPYTHON_LIBRARY='${STAGING_LIBDIR}/lib${PYTHON_DIR}${PYTHON_ABI}.so' \
+                  -DPYTHON_INCLUDE_DIR='${STAGING_INCDIR}/${PYTHON_DIR}${PYTHON_ABI}' \
 "
 
 EXTRA_OECMAKE_append_class-native = "\
@@ -137,7 +139,7 @@ BOOTSTRAPSTAGE ?= ""
 BOOTSTRAPSTAGE_class-native = "stage2"
 INSTALLTARGET ?= "install"
 INSTALLTARGET_class-native = "stage2-install"
-PASSTRHOUGH ?= ""
+PASSTHROUGH ?= ""
 PASSTHROUGH_class-native = "\
 CLANG_DEFAULT_RTLIB;CLANG_DEFAULT_CXX_STDLIB;LLVM_BUILD_LLVM_DYLIB;LLVM_LINK_LLVM_DYLIB;\
 LLVM_ENABLE_ASSERTIONS;LLVM_ENABLE_EXPENSIVE_CHECKS;LLVM_ENABLE_PIC;\
@@ -145,7 +147,7 @@ LLVM_BINDINGS_LIST;LLVM_ENABLE_FFI;FFI_INCLUDE_DIR;LLVM_OPTIMIZED_TABLEGEN;\
 LLVM_ENABLE_RTTI;LLVM_ENABLE_EH;LLVM_BUILD_EXTERNAL_COMPILER_RT;CMAKE_SYSTEM_NAME;\
 CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;LLVM_ENABLE_PROJECTS;LLVM_BINUTILS_INCDIR;\
 LLVM_TARGETS_TO_BUILD;LLVM_EXPERIMENTAL_TARGETS_TO_BUILD;PYTHON_EXECUTABLE;\
-LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN;\
+PYTHON_LIBRARY;PYTHON_INCLUDE_DIR;LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN;\
 "
 
 RRECOMMENDS_${PN} = "binutils"
@@ -181,11 +183,11 @@ do_install_append_class-nativesdk () {
 
 PACKAGE_DEBUG_SPLIT_STYLE_class-nativesdk = "debug-without-src"
 
-PACKAGES =+ "${PN}-libllvm libclang python-lldb"
+PACKAGES =+ "${PN}-libllvm ${PN}-lldb-python libclang"
 
 BBCLASSEXTEND = "native nativesdk"
 
-FILES_python-lldb = "${libdir}/python3*/site-packages/lldb/*"
+FILES_${PN}-lldb-python = "${libdir}/python3*/site-packages/lldb/*"
 
 FILES_${PN} += "\
   ${libdir}/BugpointPasses.so \
@@ -213,7 +215,7 @@ FILES_${PN}-dev += "\
 
 INSANE_SKIP_${PN} += "already-stripped"
 INSANE_SKIP_${PN}-dev += "dev-elf"
-INSANE_SKIP_python-lldb += "dev-so dev-deps"
+INSANE_SKIP_${PN}-lldb-python += "dev-so dev-deps"
 
 #Avoid SSTATE_SCAN_COMMAND running sed over llvm-config.
 SSTATE_SCAN_FILES_remove = "*-config"

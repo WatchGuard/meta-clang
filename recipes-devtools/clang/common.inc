@@ -16,7 +16,7 @@ SRC_URI = "\
     file://0006-llvm-TargetLibraryInfo-Undefine-libc-functions-if-th.patch \
     file://0007-llvm-allow-env-override-of-exe-path.patch \
     file://0008-llvm-Enhance-path-prefix-mapping.patch \
-    ${@'file://0009-clang-Enable-SSP-and-PIE-by-default.patch' if '${GCCPIE}' else ''} \
+    file://0009-clang-Enable-SSP-and-PIE-by-default.patch \
     file://0010-clang-driver-Use-lib-for-ldso-on-OE.patch \
     file://0011-clang-Driver-tools.cpp-Add-lssp_nonshared-on-musl.patch \
     file://0012-clang-musl-ppc-does-not-support-128-bit-long-double.patch \
@@ -28,6 +28,8 @@ SRC_URI = "\
     file://0018-clang-Initial-implementation-of-fmacro-prefix-map-an.patch \
     file://0019-clang-Add-lpthread-and-ldl-along-with-lunwind-for-st.patch \
     file://0020-clang-default-to-lp64d-ABI-and-rv64gc-ISA.patch \
+    file://0021-lldb-Do-not-look-for-interpreter.patch \
+    file://0022-Driver-Prioritize-SYSROOT-usr-include-over-RESOURCE_.patch \
 "
 
 # Fallback to no-PIE if not set
