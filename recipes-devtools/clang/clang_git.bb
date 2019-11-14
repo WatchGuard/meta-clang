@@ -17,7 +17,7 @@ BUILD_RANLIB_class-nativesdk = "llvm-ranlib"
 BUILD_NM_class-nativesdk = "llvm-nm"
 LDFLAGS_append_class-nativesdk = " -fuse-ld=gold"
 
-inherit cmake cmake-native python3native
+inherit cmake cmake-native pkgconfig python3native
 
 OECMAKE_FIND_ROOT_PATH_MODE_PROGRAM = "BOTH"
 
@@ -50,9 +50,12 @@ def get_clang_target_arch(bb, d):
 def get_clang_experimental_target_arch(bb, d):
     return get_clang_experimental_arch(bb, d, 'TARGET_ARCH')
 
-PACKAGECONFIG ??= "compiler-rt libcplusplus shared-libs ${@bb.utils.filter('DISTRO_FEATURES', 'thin-lto full-lto', d)}"
-PACKAGECONFIG_class-native = ""
-PACKAGECONFIG_class-nativesdk = "thin-lto"
+PACKAGECONFIG ??= "compiler-rt libcplusplus shared-libs lldb-wchar \
+                   ${@bb.utils.filter('DISTRO_FEATURES', 'thin-lto full-lto', d)} \
+                   rtti eh \
+                   "
+PACKAGECONFIG_class-native = "rtti eh"
+PACKAGECONFIG_class-nativesdk = "rtti eh thin-lto"
 
 PACKAGECONFIG[compiler-rt] = "-DCLANG_DEFAULT_RTLIB=compiler-rt,,libcxx,compiler-rt"
 PACKAGECONFIG[libcplusplus] = "-DCLANG_DEFAULT_CXX_STDLIB=libc++,,libcxx"
@@ -61,14 +64,32 @@ PACKAGECONFIG[full-lto] = "-DLLVM_ENABLE_LTO=Full -DLLVM_BINUTILS_INCDIR=${STAGI
 PACKAGECONFIG[shared-libs] = "-DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON,,,"
 PACKAGECONFIG[terminfo] = "-DLLVM_ENABLE_TERMINFO=ON,-DLLVM_ENABLE_TERMINFO=OFF,ncurses,"
 PACKAGECONFIG[pfm] = "-DLLVM_ENABLE_LIBPFM=ON,-DLLVM_ENABLE_LIBPFM=OFF,libpfm,"
+PACKAGECONFIG[lldb-wchar] = "-DLLDB_EDITLINE_USE_WCHAR=1,-DLLDB_EDITLINE_USE_WCHAR=0,"
+PACKAGECONFIG[bootstrap] = "-DCLANG_ENABLE_BOOTSTRAP=On -DCLANG_BOOTSTRAP_PASSTHROUGH='${PASSTHROUGH}' -DBOOTSTRAP_LLVM_ENABLE_LTO=Thin -DBOOTSTRAP_LLVM_ENABLE_LLD=ON,,,"
+PACKAGECONFIG[eh] = "-DLLVM_ENABLE_EH=ON,-DLLVM_ENABLE_EH=OFF,,"
+PACKAGECONFIG[rtti] = "-DLLVM_ENABLE_RTTI=ON,-DLLVM_ENABLE_RTTI=OFF,,"
+
+BUILDTARGET = "${@bb.utils.contains('PACKAGECONFIG', 'bootstrap', 'stage2', '', d)}"
+BINPATHPREFIX = "${@bb.utils.contains('PACKAGECONFIG', 'bootstrap', '/tools/clang/stage2-bins/NATIVE', '', d)}"
+INSTALLTARGET = "${@bb.utils.contains('PACKAGECONFIG', 'bootstrap', 'stage2-install', 'install', d)}"
+
+PASSTHROUGH = "\
+CLANG_DEFAULT_RTLIB;CLANG_DEFAULT_CXX_STDLIB;LLVM_BUILD_LLVM_DYLIB;LLVM_LINK_LLVM_DYLIB;\
+LLVM_ENABLE_ASSERTIONS;LLVM_ENABLE_EXPENSIVE_CHECKS;LLVM_ENABLE_PIC;\
+LLVM_BINDINGS_LIST;LLVM_ENABLE_FFI;FFI_INCLUDE_DIR;LLVM_OPTIMIZED_TABLEGEN;\
+LLVM_ENABLE_RTTI;LLVM_ENABLE_EH;LLVM_BUILD_EXTERNAL_COMPILER_RT;CMAKE_SYSTEM_NAME;\
+CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;LLVM_ENABLE_PROJECTS;LLVM_BINUTILS_INCDIR;\
+LLVM_TARGETS_TO_BUILD;LLVM_EXPERIMENTAL_TARGETS_TO_BUILD;PYTHON_EXECUTABLE;\
+PYTHON_LIBRARY;PYTHON_INCLUDE_DIR;LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN;LLDB_EDITLINE_USE_WCHAR;\
+"
 #
 # Default to build all OE-Core supported target arches (user overridable).
 #
 LLVM_TARGETS_TO_BUILD ?= "AArch64;ARM;BPF;Mips;PowerPC;RISCV;X86"
 LLVM_TARGETS_TO_BUILD_append = ";${@get_clang_host_arch(bb, d)};${@get_clang_target_arch(bb, d)}"
 
-LLVM_TARGETS_TO_BUILD_TARGET ?= ""
-LLVM_TARGETS_TO_BUILD_TARGET_append ?= "${@get_clang_target_arch(bb, d)}"
+LLVM_TARGETS_TO_BUILD_TARGET ?= "AMDGPU;${LLVM_TARGETS_TO_BUILD}"
+LLVM_TARGETS_TO_BUILD_TARGET_append ?= ";${@get_clang_target_arch(bb, d)}"
 
 LLVM_EXPERIMENTAL_TARGETS_TO_BUILD ?= ""
 LLVM_EXPERIMENTAL_TARGETS_TO_BUILD_append = ";${@get_clang_experimental_target_arch(bb, d)}"
@@ -83,28 +104,21 @@ EXTRA_OECMAKE += "-DLLVM_ENABLE_ASSERTIONS=OFF \
                   -DLLVM_ENABLE_FFI=ON \
                   -DFFI_INCLUDE_DIR=$(pkg-config --variable=includedir libffi) \
                   -DLLVM_OPTIMIZED_TABLEGEN=ON \
-                  -DLLVM_ENABLE_RTTI=ON \
-                  -DLLVM_ENABLE_EH=ON \
                   -DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON \
                   -DCMAKE_SYSTEM_NAME=Linux \
                   -DCMAKE_BUILD_TYPE=Release \
                   -DBUILD_SHARED_LIBS=OFF \
-                  -DLLVM_ENABLE_PROJECTS='clang;lld;lldb' \
+                  -DLLVM_ENABLE_PROJECTS='clang;clang-tools-extra;lld;lldb' \
                   -DLLVM_BINUTILS_INCDIR=${STAGING_INCDIR} \
-                  -G Ninja ${S}/llvm \
+                  -DLLVM_ENABLE_LIBEDIT=ON \
                   -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON \
-		  -DPYTHON_EXECUTABLE=${PYTHON} \
-                  -DPYTHON_LIBRARY='${STAGING_LIBDIR}/lib${PYTHON_DIR}${PYTHON_ABI}.so' \
-                  -DPYTHON_INCLUDE_DIR='${STAGING_INCDIR}/${PYTHON_DIR}${PYTHON_ABI}' \
+                  -G Ninja ${S}/llvm \
 "
 
 EXTRA_OECMAKE_append_class-native = "\
-                  -DCLANG_ENABLE_BOOTSTRAP=On \
-                  -DCLANG_BOOTSTRAP_PASSTHROUGH='${PASSTHROUGH}' \
-                  -DBOOTSTRAP_LLVM_ENABLE_LTO=Thin \
-                  -DBOOTSTRAP_LLVM_ENABLE_LLD=ON \
                   -DLLVM_TARGETS_TO_BUILD='${LLVM_TARGETS_TO_BUILD}' \
                   -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD='${LLVM_EXPERIMENTAL_TARGETS_TO_BUILD}' \
+                  -DPYTHON_EXECUTABLE='${PYTHON}' \
 "
 EXTRA_OECMAKE_append_class-nativesdk = "\
                   -DCMAKE_CROSSCOMPILING:BOOL=ON \
@@ -117,6 +131,8 @@ EXTRA_OECMAKE_append_class-nativesdk = "\
                   -DLLVM_TABLEGEN=${STAGING_BINDIR_NATIVE}/llvm-tblgen \
                   -DCLANG_TABLEGEN=${STAGING_BINDIR_NATIVE}/clang-tblgen \
                   -DLLDB_TABLEGEN=${STAGING_BINDIR_NATIVE}/lldb-tblgen \
+                  -DPYTHON_LIBRARY=${STAGING_LIBDIR}/lib${PYTHON_DIR}${PYTHON_ABI}.so \
+                  -DPYTHON_INCLUDE_DIR=${STAGING_INCDIR}/${PYTHON_DIR}${PYTHON_ABI} \
 "
 EXTRA_OECMAKE_append_class-target = "\
                   -DCMAKE_CROSSCOMPILING:BOOL=ON \
@@ -129,54 +145,52 @@ EXTRA_OECMAKE_append_class-target = "\
                   -DCMAKE_NM=${STAGING_BINDIR_TOOLCHAIN}/${TARGET_PREFIX}llvm-nm \
                   -DLLVM_TARGET_ARCH=${@get_clang_target_arch(bb, d)} \
                   -DLLVM_DEFAULT_TARGET_TRIPLE=${TARGET_SYS}${HF} \
+                  -DPYTHON_LIBRARY=${STAGING_LIBDIR}/lib${PYTHON_DIR}${PYTHON_ABI}.so \
+                  -DPYTHON_INCLUDE_DIR=${STAGING_INCDIR}/${PYTHON_DIR}${PYTHON_ABI} \
+                  -DLLVM_LIBDIR_SUFFIX=${@d.getVar('baselib').replace('lib', '')} \
+                  -DPYTHON_EXECUTABLE='${PYTHON}' \
 "
 
-DEPENDS = "binutils zlib libffi libxml2 libedit ninja-native swig-native"
-DEPENDS_append_class-nativesdk = " clang-crosssdk-${SDK_ARCH} virtual/${TARGET_PREFIX}binutils-crosssdk"
-DEPENDS_append_class-target = " clang-cross-${TARGET_ARCH}"
+DEPENDS = "binutils zlib libffi libedit libedit-native libxml2 libxml2-native ninja-native swig-native"
+DEPENDS_append_class-nativesdk = " clang-crosssdk-${SDK_ARCH} virtual/${TARGET_PREFIX}binutils-crosssdk nativesdk-python3"
+DEPENDS_append_class-target = " clang-cross-${TARGET_ARCH} python3"
 
-BOOTSTRAPSTAGE ?= ""
-BOOTSTRAPSTAGE_class-native = "stage2"
-INSTALLTARGET ?= "install"
-INSTALLTARGET_class-native = "stage2-install"
-PASSTHROUGH ?= ""
-PASSTHROUGH_class-native = "\
-CLANG_DEFAULT_RTLIB;CLANG_DEFAULT_CXX_STDLIB;LLVM_BUILD_LLVM_DYLIB;LLVM_LINK_LLVM_DYLIB;\
-LLVM_ENABLE_ASSERTIONS;LLVM_ENABLE_EXPENSIVE_CHECKS;LLVM_ENABLE_PIC;\
-LLVM_BINDINGS_LIST;LLVM_ENABLE_FFI;FFI_INCLUDE_DIR;LLVM_OPTIMIZED_TABLEGEN;\
-LLVM_ENABLE_RTTI;LLVM_ENABLE_EH;LLVM_BUILD_EXTERNAL_COMPILER_RT;CMAKE_SYSTEM_NAME;\
-CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;LLVM_ENABLE_PROJECTS;LLVM_BINUTILS_INCDIR;\
-LLVM_TARGETS_TO_BUILD;LLVM_EXPERIMENTAL_TARGETS_TO_BUILD;PYTHON_EXECUTABLE;\
-PYTHON_LIBRARY;PYTHON_INCLUDE_DIR;LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN;\
-"
+COMPATIBLE_HOST_riscv64 = "null"
+COMPATIBLE_HOST_riscv32 = "null"
 
 RRECOMMENDS_${PN} = "binutils"
 RRECOMMENDS_${PN}_append_class-target = " libcxx-dev"
 
 do_compile() {
-	ninja ${PARALLEL_MAKE} ${BOOTSTRAPSTAGE}
+	ninja ${PARALLEL_MAKE} ${BUILDTARGET}
 }
 
 do_install() {
         DESTDIR=${D} ninja ${PARALLEL_MAKE} ${INSTALLTARGET}
-        rm -rf ${D}${libdir}/python3*/site-packages/six.py
+        rm -rf ${D}${libdir}/python*/site-packages/six.py
 }
 
 do_install_append_class-native () {
-	install -Dm 0755 ${B}/bin/clang-tblgen ${D}${bindir}/clang-tblgen
-	install -Dm 0755 ${B}/tools/clang/stage2-bins/bin/lldb-tblgen ${D}${bindir}/lldb-tblgen
+	install -Dm 0755 ${B}${BINPATHPREFIX}/bin/clang-tblgen ${D}${bindir}/clang-tblgen
+	install -Dm 0755 ${B}${BINPATHPREFIX}/bin/lldb-tblgen ${D}${bindir}/lldb-tblgen
 	for f in `find ${D}${bindir} -executable -type f -not -type l`; do
 		test -n "`file $f|grep -i ELF`" && ${STRIP} $f
 		echo "stripped $f"
 	done
+        ln -sf clang-tblgen ${D}${bindir}/clang-tblgen${PV}
+        ln -sf llvm-tblgen ${D}${bindir}/llvm-tblgen${PV}
+        ln -sf llvm-config ${D}${bindir}/llvm-config${PV}
 }
 
 do_install_append_class-nativesdk () {
-	install -Dm 0755 ${B}/bin/clang-tblgen ${D}${bindir}/clang-tblgen
-	install -Dm 0755 ${B}/bin/lldb-tblgen ${D}${bindir}/lldb-tblgen
+	install -Dm 0755 ${B}${BINPATHPREFIX}/bin/clang-tblgen ${D}${bindir}/clang-tblgen
+	install -Dm 0755 ${B}${BINPATHPREFIX}/bin/lldb-tblgen ${D}${bindir}/lldb-tblgen
 	for f in `find ${D}${bindir} -executable -type f -not -type l`; do
 		test -n "`file $f|grep -i ELF`" && ${STRIP} $f
 	done
+        ln -sf clang-tblgen ${D}${bindir}/clang-tblgen${PV}
+        ln -sf llvm-tblgen ${D}${bindir}/llvm-tblgen${PV}
+        ln -sf llvm-config ${D}${bindir}/llvm-config${PV}
 	rm -rf ${D}${datadir}/llvm/cmake
 	rm -rf ${D}${datadir}/llvm
 }
@@ -185,9 +199,12 @@ PACKAGE_DEBUG_SPLIT_STYLE_class-nativesdk = "debug-without-src"
 
 PACKAGES =+ "${PN}-libllvm ${PN}-lldb-python libclang"
 
+PROVIDES += "llvm llvm${PV}"
+PROVIDES_append_class-native = " llvm-native"
+
 BBCLASSEXTEND = "native nativesdk"
 
-FILES_${PN}-lldb-python = "${libdir}/python3*/site-packages/lldb/*"
+FILES_${PN}-lldb-python = "${libdir}/python*/site-packages/lldb/*"
 
 FILES_${PN} += "\
   ${libdir}/BugpointPasses.so \

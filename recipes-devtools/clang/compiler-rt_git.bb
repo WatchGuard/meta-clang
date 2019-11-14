@@ -13,16 +13,14 @@ inherit cmake pkgconfig pythonnative
 
 LIC_FILES_CHKSUM = "file://compiler-rt/LICENSE.TXT;md5=d846d1d65baf322d4c485d6ee54e877a"
 
-BASEDEPENDS_remove_toolchain-clang_class-target = "compiler-rt libcxx"
-DEPENDS_append_toolchain-clang_class-target = " virtual/${TARGET_PREFIX}compilerlibs"
-TARGET_CXXFLAGS_remove_toolchain-clang = "--stdlib=libc++"
-TUNE_CCARGS_remove_toolchain-clang = "--rtlib=compiler-rt --unwindlib=libunwind --stdlib=libc++"
+LIBCPLUSPLUS = ""
+COMPILER_RT = ""
 TUNE_CCARGS_remove = "-no-integrated-as"
-DEPENDS += "ninja-native"
-DEPENDS_append_class-nativesdk = " clang-native"
 
-THUMB_TUNE_CCARGS = ""
-#TUNE_CCARGS += "-nostdlib"
+INHIBIT_DEFAULT_DEPS = "1"
+
+DEPENDS += "ninja-native clang-cross-${TARGET_ARCH} virtual/${MLPREFIX}libc virtual/${TARGET_PREFIX}compilerlibs"
+DEPENDS_append_class-nativesdk = " clang-native"
 
 HF = "${@ bb.utils.contains('TUNE_CCARGS_MFLOAT', 'hard', 'hf', '', d)}"
 HF[vardepvalue] = "${HF}"
@@ -72,6 +70,10 @@ do_install_append () {
         rm -rf ${D}${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/clang_rt.crt*.o
 }
 
+sysroot_stage_all_append_class-target() {
+        sysroot_stage_dir ${D}${exec_prefix}/lib ${SYSROOT_DESTDIR}${exec_prefix}/lib
+}
+
 FILES_SOLIBSDEV = ""
 FILES_${PN} += "${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/lib*${SOLIBSDEV} \
                 ${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/*.txt \
@@ -80,7 +82,7 @@ FILES_${PN}-staticdev += "${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${P
 FILES_${PN}-dev += "${datadir} ${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/*.syms \
                     ${exec_prefix}/lib/clang/${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}/lib/linux/clang_rt.crt*.o \
                    "
-INSANE_SKIP_${PN} = "dev-so"
+INSANE_SKIP_${PN} = "dev-so libdir"
 
 #PROVIDES_append_class-target = "\
 #        virtual/${TARGET_PREFIX}compilerlibs \
