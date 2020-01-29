@@ -17,7 +17,7 @@ SRC_URI = "\
     file://0007-llvm-allow-env-override-of-exe-path.patch \
     file://0008-llvm-Enhance-path-prefix-mapping.patch \
     file://0009-clang-Enable-SSP-and-PIE-by-default.patch \
-    file://0010-clang-driver-Use-lib-for-ldso-on-OE.patch \
+    file://0010-clang-driver-Check-sysroot-for-ldso-path.patch \
     file://0011-clang-Driver-tools.cpp-Add-lssp_nonshared-on-musl.patch \
     file://0012-clang-musl-ppc-does-not-support-128-bit-long-double.patch \
     file://0013-clang-Prepend-trailing-to-sysroot.patch \
@@ -28,10 +28,14 @@ SRC_URI = "\
     file://0018-clang-Initial-implementation-of-fmacro-prefix-map-an.patch \
     file://0019-clang-Add-lpthread-and-ldl-along-with-lunwind-for-st.patch \
     file://0020-clang-default-to-lp64d-ABI-and-rv64gc-ISA.patch \
-    file://0021-Driver-Prioritize-SYSROOT-usr-include-over-RESOURCE_.patch \
-    file://0022-RISCV-Add-support-for-floating-point-registers-in-in.patch \
-    file://0023-Pass-PYTHON_EXECUTABLE-when-cross-compiling-for-nati.patch \
-    file://0024-openmp-Recognise-ARMv7ve-machine-arch.patch \
+    file://0021-RISCV-Add-support-for-floating-point-registers-in-in.patch \
+    file://0022-Pass-PYTHON_EXECUTABLE-when-cross-compiling-for-nati.patch \
+    file://0023-openmp-Recognise-ARMv7ve-machine-arch.patch \
+    file://0024-Check-for-atomic-double-intrinsics.patch \
+    file://0025-llvm-Let-llvm-ar-name-contain-lib.patch \
+    file://0026-libclang-Use-CMAKE_DL_LIBS-for-deducing-libdl.patch \
+    file://0027-Fix-sanitizer-common-build-with-glibc-2.31.patch \
+    file://0028-Add-libgcc-to-link-step-for-libcxx.patch \
 "
 
 # Fallback to no-PIE if not set
