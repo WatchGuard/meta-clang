@@ -204,7 +204,7 @@ PROVIDES_append_class-native = " llvm-native"
 
 BBCLASSEXTEND = "native nativesdk"
 
-FILES_${PN}-lldb-python = "${libdir}/python*/site-packages/lldb/*"
+FILES_${PN}-lldb-python = "${libdir}/python*/*"
 
 FILES_${PN} += "\
   ${libdir}/BugpointPasses.so \

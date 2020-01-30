@@ -6,6 +6,7 @@ LIC_FILES_CHKSUM = "file://llvm/LICENSE.TXT;md5=${LLVMMD5SUM} \
 LICENSE = "Apache-2.0-with-LLVM-exception"
 
 BASEURI ??= "${LLVM_GIT}/llvm-project;protocol=${LLVM_GIT_PROTOCOL};branch=${BRANCH}"
+#     file://0021-Driver-Prioritize-SYSROOT-usr-include-over-RESOURCE_.patch 
 SRC_URI = "\
     ${BASEURI} \
     file://0001-lldb-Add-lxml2-to-linker-cmdline-of-xml-is-found.patch \
@@ -28,7 +29,6 @@ SRC_URI = "\
     file://0018-clang-Initial-implementation-of-fmacro-prefix-map-an.patch \
     file://0019-clang-Add-lpthread-and-ldl-along-with-lunwind-for-st.patch \
     file://0020-clang-default-to-lp64d-ABI-and-rv64gc-ISA.patch \
-    file://0021-Driver-Prioritize-SYSROOT-usr-include-over-RESOURCE_.patch \
     file://0022-RISCV-Add-support-for-floating-point-registers-in-in.patch \
     file://0023-Pass-PYTHON_EXECUTABLE-when-cross-compiling-for-nati.patch \
     file://0024-openmp-Recognise-ARMv7ve-machine-arch.patch \
